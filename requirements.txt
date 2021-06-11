@@ -3,3 +3,5 @@ psycopg2-binary
 sqlalchemy
 pyjwt
 python-dotenv
+alembic
+git+https://gitlab.com/PersonalHealthTrain/implementations/germanmii/difuture/incubating/pht/conductor-library.git
