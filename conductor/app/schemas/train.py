@@ -52,7 +52,7 @@ class Train(TrainBase):
     id: int
     is_active: bool
     participants: List[StationBase] = None
-    state: TrainState
+    state: Optional[TrainState] = None
 
     class Config:
         orm_mode = True

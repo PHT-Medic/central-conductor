@@ -12,4 +12,4 @@ class Station(Base):
     __tablename__ = "stations"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    trains = relationship(Train, secondary="train_link", backref="Train")
+    trains = relationship(Train, secondary="train_link", backref="Train", overlaps="Station,participants")

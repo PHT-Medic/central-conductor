@@ -3,8 +3,8 @@ FROM python:3.8
 COPY requirements.txt /home/requirements.txt
 RUN pip install -r /home/requirements.txt
 
-# COPY app /home/app
-# COPY run_conductor.py /home/run_conductor.py
+COPY . /home/conductor
+RUN pip install /home/conductor
 
 
-CMD ["python", "/opt/run_conductor.py"]
+CMD ["python", "/home/conductor/conductor/run_conductor.py"]

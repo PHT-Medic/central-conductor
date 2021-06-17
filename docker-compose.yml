@@ -1,0 +1,31 @@
+version: '3.8'
+
+volumes:
+  pg_pht_conductor:
+    external: True
+
+services:
+  conductor:
+    build: .
+    environment:
+      - CONDUCTOR_DB=postgresql+psycopg2://admin:admin@postgres/pht_conductor
+      - ENVIRONMENT=prod
+    ports:
+      - 8000:8000
+
+  pg_conductor:
+    image: postgres:13
+    volumes:
+      - pg_pht_conductor:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=pht_conductor
+#    ports:
+#      - 5433:5432
+
+
+networks:
+    default:
+        external:
+            name: pht-network
