@@ -49,9 +49,9 @@ def seed_db_for_testing():
         test_train_create = TrainCreate(description="test train 1")
         db_train_1 = trains.create_train_for_user(db=session, train_in=test_train_create, creator_id=1)
         test_train_2_create = TrainCreate(description="test train 2")
-        db_train_2 = trains.create(db=session, train_in=test_train_2_create, creator_id=1)
+        db_train_2 = trains.create_train_for_user(db=session, train_in=test_train_2_create, creator_id=1)
         test_train_3_create = TrainCreate(description="test train 3")
-        db_train_3 = trains.create(db=session, train_in=test_train_3_create, creator_id=1)
+        db_train_3 = trains.create_train_for_user(db=session, train_in=test_train_3_create, creator_id=1)
 
     session.commit()
     session.close()

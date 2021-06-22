@@ -10,6 +10,8 @@ services:
     environment:
       - CONDUCTOR_DB=postgresql+psycopg2://admin:admin@pg_conductor/pht_conductor
       - ENVIRONMENT=prod
+
+    command: ["./wait-for-it.sh", "pg_conductor:5432", "--", "python", "/home/conductor/conductor/run_conductor.py"]
     ports:
       - 8000:8000
 
