@@ -8,7 +8,7 @@ services:
   conductor:
     build: .
     environment:
-      - CONDUCTOR_DB=postgresql+psycopg2://admin:admin@postgres/pht_conductor
+      - CONDUCTOR_DB=postgresql+psycopg2://admin:admin@pg_conductor/pht_conductor
       - ENVIRONMENT=prod
     ports:
       - 8000:8000
