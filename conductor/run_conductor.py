@@ -5,8 +5,8 @@ import os
 
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
-    setup_db()
-    # reset_db()
+    # setup_db()
+    reset_db()
     # populate_db_for_testing()
     log_config = uvicorn.config.LOGGING_CONFIG
     log_config["formatters"]["access"]["fmt"] = "%(asctime)s - %(levelname)s - %(message)s"

@@ -37,6 +37,7 @@ def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
 
 @router.post("/trains/{train_id}/shareKeys", tags=["Protocol"], response_model=TrainState)
 def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends(get_db)):
+    print(msg)
     state = process_share_keys_message(db, msg, train_id)
     return state
 

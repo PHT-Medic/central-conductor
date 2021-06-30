@@ -4,6 +4,7 @@ from conductor.app.models.train import Train
 from conductor.app.models.station import Station
 
 from conductor.app.crud.train import get_train
+from fastapi.exceptions import HTTPException
 
 
 def create_station(db: Session, name: str):
@@ -17,7 +18,10 @@ def create_station(db: Session, name: str):
 def register_train_for_station(db: Session, train_id: int, station_id: int):
     print(f"Train id: {train_id}, Station ID {station_id}")
     db_train = get_train(db, train_id)
+
     db_station = db.query(Station).get(station_id)
+    if station_id in db_train.participants:
+        raise HTTPException(status_code=403, detail=f"Your station is already registered for train: {train_id}")
     db_train.participants.append(db_station)
     db_station.trains.append(db_train)
 
