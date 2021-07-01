@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
 from conductor.app.schemas.train import TrainState, Train, TrainCreate, TrainConfig
 from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysSchema, PostSharedKeys, GetCyphersRequest, \
     DistributeCypher
-from conductor.app.crud.train import read_train_state, create_train, get_trains, get_train, read_train_config, update_config
+from conductor.app.crud import trains
 from conductor.app.protocol.broadcast_keys import (update_round_0_on_message,
-                                         update_round_0_on_broadcast,
-                                         create_advertise_keys_message)
+                                                   update_round_0_on_broadcast,
+                                                   create_advertise_keys_message)
 from conductor.app.protocol.share_keys import process_share_keys_message, distribute_cyphers
 from conductor.app.api.dependencies import get_db
 
@@ -21,7 +21,17 @@ def collect_key_advertisements(train_id: int, message: AdvertiseKeysSchema, db: 
     Route for participants to advertise keys when the protocol for the specified train is in round 0
     """
     # db_message = create_advertise_keys_message(db, message)
-    print(message)
+
+    db_train = trains.get(db, id=train_id)
+    if not db_train:
+        raise HTTPException(status_code=403, detail="Train does not exist")
+    db_state: TrainState = db_train.state
+    if db_state.round != 0:
+        raise HTTPException(status_code=403, detail="Train is not in the correct round of the protocol")
+
+    if db_state.round_k >= len(db_train.participants):
+        raise HTTPException(status_code=403, detail="Maximum number of inputs for the current round reached")
+
     state = update_round_0_on_message(db, train_id, message)
     return state
 
@@ -38,6 +48,17 @@ def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
 @router.post("/trains/{train_id}/shareKeys", tags=["Protocol"], response_model=TrainState)
 def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends(get_db)):
     print(msg)
+
+    db_train = trains.get(db, id=train_id)
+    if not db_train:
+        raise HTTPException(status_code=403, detail="Train does not exist")
+
+    db_state: TrainState = db_train.state
+    if db_state.round != 1:
+        raise HTTPException(status_code=403, detail="Train is not in the correct round of the protocol")
+
+    if db_state.round_k >= len(db_train.participants):
+        raise HTTPException(status_code=403, detail="Maximum number of inputs for the current round reached")
     state = process_share_keys_message(db, msg, train_id)
     return state
 

@@ -24,7 +24,6 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
         raise HTTPException(status_code=400,
                             detail=f"Round mismatch - train is currently in round {db_train_state.round}")
 
-    # TODO check for matching iterations
     key_advertise_messages = db.query(AdvertiseKeysMessage). \
         filter(AdvertiseKeysMessage.train_id == train_id,
                AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
