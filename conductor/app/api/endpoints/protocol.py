@@ -47,9 +47,9 @@ def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
 
 @router.post("/trains/{train_id}/shareKeys", tags=["Protocol"], response_model=TrainState)
 def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends(get_db)):
-    print(msg)
 
     db_train = trains.get(db, id=train_id)
+
     if not db_train:
         raise HTTPException(status_code=403, detail="Train does not exist")
 
@@ -59,6 +59,7 @@ def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends
 
     if db_state.round_k >= len(db_train.participants):
         raise HTTPException(status_code=403, detail="Maximum number of inputs for the current round reached")
+
     state = process_share_keys_message(db, msg, train_id)
     return state
 
