@@ -23,11 +23,5 @@ services:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=admin
       - POSTGRES_DB=pht_conductor
-#    ports:
-#      - 5433:5432
-
-
-networks:
-    default:
-        external:
-            name: pht-network
+    ports:
+      - 5433:5432

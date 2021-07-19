@@ -30,7 +30,7 @@ def collect_key_advertisements(train_id: int, message: AdvertiseKeysSchema, db: 
         raise HTTPException(status_code=403, detail="Train is not in the correct round of the protocol")
 
     if db_state.round_k >= len(db_train.participants):
-        raise HTTPException(status_code=403, detail="Maximum number of inputs for the current round reached")
+        raise HTTPException(status_code=403, detail="Maximum number of key advertisements sent in.")
 
     state = update_round_0_on_message(db, train_id, message)
     return state
@@ -58,7 +58,7 @@ def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends
         raise HTTPException(status_code=403, detail="Train is not in the correct round of the protocol")
 
     if db_state.round_k >= len(db_train.participants):
-        raise HTTPException(status_code=403, detail="Maximum number of inputs for the current round reached")
+        raise HTTPException(status_code=403, detail="Maximum number of shared keys have been uploaded.")
 
     state = process_share_keys_message(db, msg, train_id)
     return state
