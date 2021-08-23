@@ -11,7 +11,6 @@ from conductor.app.crud.train import get_train, read_train_config, read_train_st
 
 
 def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeysSchema):
-
     # TODO check that the message is valid - no duplicates etc
     # store the message in db
     msg = create_advertise_keys_message(db, message)
@@ -24,10 +23,15 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
         raise HTTPException(status_code=400,
                             detail=f"Round mismatch - train is currently in round {db_train_state.round}")
 
+    if db_train_state.round_k >= len(db_train.participants):
+        raise HTTPException(status_code=400,
+                            detail="Max number of key broadcast received. Check if your train is in the correct round "
+                                   "or iteration.")
+
     # TODO check for matching iterations
-    key_advertise_messages = db.query(AdvertiseKeysMessage). \
-        filter(AdvertiseKeysMessage.train_id == train_id,
-               AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
+    key_advertise_messages = db.query(AdvertiseKeysMessage) \
+        .filter(AdvertiseKeysMessage.train_id == train_id,
+                AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
 
     n_participants = len(db_train.participants)
     n_messages = len(key_advertise_messages)
@@ -65,7 +69,6 @@ def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCas
     db_train_state.round_messages_sent += 1
 
     config = read_train_config(db, train_id)
-
 
     if db_train_state.round_messages_sent > floor(
             len(db_train.participants) - (len(db_train.participants) * config.dropout_allowance)):
