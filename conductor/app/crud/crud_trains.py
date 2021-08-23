@@ -1,9 +1,10 @@
-from typing import Any
+from typing import Any, List
 from sqlalchemy.orm import Session
 
 from .base import CRUDBase
 from conductor.app.models.train import Train, TrainState, TrainConfig
 from conductor.app.schemas import TrainCreate, TrainUpdate
+from ..models import Station
 
 
 class CRUDTrain(CRUDBase[Train, TrainCreate, TrainUpdate]):
@@ -36,6 +37,10 @@ class CRUDTrain(CRUDBase[Train, TrainCreate, TrainUpdate]):
         db.refresh(db_train)
 
         return db_train
+
+    def read_trains_for_station(self, db: Session, station_id: Any) -> List[Train]:
+        station = db.query(Station).filter(Station.id == station_id).first()
+        return station.trains
 
 
 trains = CRUDTrain(Train)
