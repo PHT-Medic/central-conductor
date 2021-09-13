@@ -31,6 +31,7 @@ class TrainState(BaseModel):
     round_ready: bool
     updated_at: Optional[datetime] = None
     discovery_finished: bool
+    round_messages_sent: int
 
     class Config:
         orm_mode = True

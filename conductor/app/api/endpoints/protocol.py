@@ -21,7 +21,6 @@ def collect_key_advertisements(train_id: int, message: AdvertiseKeysSchema, db: 
     Route for participants to advertise keys when the protocol for the specified train is in round 0
     """
     # db_message = create_advertise_keys_message(db, message)
-    print(message)
     state = update_round_0_on_message(db, train_id, message)
     return state
 

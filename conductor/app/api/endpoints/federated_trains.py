@@ -18,7 +18,7 @@ router = APIRouter()
 # TODO authentication user based or with train token
 
 
-@router.post("/trains/", response_model=Train, tags=["Trains"])
+@router.post("/trains", response_model=Train, tags=["Trains"])
 def create_train_for_user(
         creator_id: int, train_in: TrainCreate, db: Session = Depends(get_db)
 ):
@@ -26,7 +26,7 @@ def create_train_for_user(
     return db_train
 
 
-@router.get("/trains/", response_model=List[Train], tags=["Trains"])
+@router.get("/trains", response_model=List[Train], tags=["Trains"])
 def read_trains(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     db_trains = trains.get_multi(db, skip=skip, limit=limit)
     return db_trains

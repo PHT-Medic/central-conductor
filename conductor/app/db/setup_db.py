@@ -8,14 +8,17 @@ from fastapi.logger import logger
 
 
 
-def setup_db():
+def setup_db(dev=False):
     Base.metadata.create_all(bind=engine)
-    seed_db_for_testing()
+    if dev:
+        seed_db_for_testing()
 
 
-def reset_db():
+def reset_db(dev=False):
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    if dev:
+        seed_db_for_testing()
 
 
 def seed_db_for_testing():

@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 from conductor.app.schemas import protocol
 from math import floor
@@ -28,15 +30,14 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
                             detail="Max number of key broadcast received. Check if your train is in the correct round "
                                    "or iteration.")
 
-    # TODO check for matching iterations
     key_advertise_messages = db.query(AdvertiseKeysMessage) \
         .filter(AdvertiseKeysMessage.train_id == train_id,
                 AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
 
     n_participants = len(db_train.participants)
     n_messages = len(key_advertise_messages)
-    db_train_state.round_k = n_messages
 
+    db_train_state.round_k = n_messages
     db_train_state.round_ready = (
             floor(n_messages + db_train_config.dropout_allowance * n_participants) >= n_participants)
 
@@ -73,7 +74,7 @@ def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCas
     if db_train_state.round_messages_sent > floor(
             len(db_train.participants) - (len(db_train.participants) * config.dropout_allowance)):
         # db_train_state.round_finished = True
-        print(f"Moving to next round: {db_train_state.round} -> {db_train_state.round + 1}")
+        logging.info(f"Moving to next round: {db_train_state.round} -> {db_train_state.round + 1}")
         db_train_state.round += 1
 
     db.commit()

@@ -43,4 +43,6 @@ class CRUDTrain(CRUDBase[Train, TrainCreate, TrainUpdate]):
         return station.trains
 
 
+
+
 trains = CRUDTrain(Train)
