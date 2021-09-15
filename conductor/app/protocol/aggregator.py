@@ -1,6 +1,6 @@
 from datetime import datetime
 from math import floor
-from typing import Any, Tuple
+from typing import Any, Tuple, List
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -12,15 +12,22 @@ from conductor.app.schemas.protocol import AdvertiseKeysSchema
 
 class Aggregator:
 
-    # TODO more static methods?
-    def get_updates_for_station(self, db: Session, station_id: Any):
+    def get_updates_for_station(self, db: Session, station_id: Any) -> List[Train]:
         """
 
         :param station_id:
         :return: 
         """
         db_trains = trains.read_trains_for_station(db=db, station_id=station_id)
-        return db_trains
+        print(db_trains)
+        ready_trains = []
+        for train in db_trains:
+            state = train.state
+            print(state)
+            print(state.__dict__)
+            if state.round_ready:
+                ready_trains.append(train)
+        return ready_trains
 
     def get_train_info(self, db: Session, train_id: Any) -> Tuple[Train, TrainState, TrainConfig]:
         """
@@ -65,15 +72,15 @@ class Aggregator:
 
         # Insert the message and update the state
         db_message = self._insert_advertise_keys_message(db, message)
-        state = self.update_train_state_with_key_advertisement(db, train, state, config)
+        state = self._update_train_state_with_key_advertisement(db, train, state, config)
 
         return state
 
     @staticmethod
-    def update_train_state_with_key_advertisement(db: Session,
-                                                  train: Train,
-                                                  train_state: TrainState,
-                                                  train_config: TrainConfig):
+    def _update_train_state_with_key_advertisement(db: Session,
+                                                   train: Train,
+                                                   train_state: TrainState,
+                                                   train_config: TrainConfig):
 
         # Get all messages for the train and it's current iteration
         total_key_adv = db.query(AdvertiseKeysMessage).filter(
@@ -84,9 +91,6 @@ class Aggregator:
         # compare the number of messages with the registered participants
         n_participants = len(train.participants)
         n_messages = len(total_key_adv)
-
-        print(n_participants)
-        print(n_messages)
 
         # Mark the round as ready when the threshold has been met
         train_state.round_k = n_messages

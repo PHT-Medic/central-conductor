@@ -42,6 +42,10 @@ class CRUDTrain(CRUDBase[Train, TrainCreate, TrainUpdate]):
         station = db.query(Station).filter(Station.id == station_id).first()
         return station.trains
 
+    def read_train_state(self, db: Session, train_id) -> TrainState:
+        train = self.get(db, train_id)
+        return train.state
+
 
 
 

@@ -35,9 +35,7 @@ def read_trains(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 @router.get("/trains/{train_id}", response_model=Train, tags=["Trains"])
 def read_train(train_id: int, db: Session = Depends(get_db)):
     db_train = trains.get(db, train_id)
-    print(db_train.participants)
 
-    # resp = Train(**db_train.dict())
     return db_train
 
 
@@ -47,7 +45,7 @@ def get_train_state(train_id: int, db: Session = Depends(get_db)):
     Read the current state of the train, specified by **{train_id}** from the database and return it as json
 
     """
-    state = read_train_state(db, train_id)
+    state = trains.read_train_state(db, train_id)
     return state
 
 
