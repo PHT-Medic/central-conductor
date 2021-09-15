@@ -6,6 +6,7 @@ from .station import StationBase
 
 
 class TrainBase(BaseModel):
+    name: str
     description: str
     proposal_id: Optional[int] = 0
 

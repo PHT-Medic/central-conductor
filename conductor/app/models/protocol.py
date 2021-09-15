@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, LargeBinary, Float
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
@@ -11,6 +13,7 @@ class AdvertiseKeysMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     train_id = Column(Integer, ForeignKey("trains.id"))
+    name = Column(String, default=str(uuid.uuid4()))
     station_id = Column(Integer, ForeignKey("stations.id"))
     iteration = Column(Integer)
     # TODO add unique constraints

@@ -11,6 +11,7 @@ from conductor.app.protocol.broadcast_keys import (update_round_0_on_message,
                                          create_advertise_keys_message)
 from conductor.app.protocol.share_keys import process_share_keys_message, distribute_cyphers
 from conductor.app.api.dependencies import get_db
+from conductor.app.protocol.aggregator import Aggregator
 
 router = APIRouter()
 
@@ -20,8 +21,8 @@ def collect_key_advertisements(train_id: int, message: AdvertiseKeysSchema, db: 
     """
     Route for participants to advertise keys when the protocol for the specified train is in round 0
     """
-    # db_message = create_advertise_keys_message(db, message)
-    state = update_round_0_on_message(db, train_id, message)
+    # state = update_round_0_on_message(db, train_id, message)
+    state = Aggregator().process_key_advertisement(db, train_id, message)
     return state
 
 
