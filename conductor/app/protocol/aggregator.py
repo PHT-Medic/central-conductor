@@ -19,12 +19,9 @@ class Aggregator:
         :return: 
         """
         db_trains = trains.read_trains_for_station(db=db, station_id=station_id)
-        print(db_trains)
         ready_trains = []
         for train in db_trains:
             state = train.state
-            print(state)
-            print(state.__dict__)
             if state.round_ready:
                 ready_trains.append(train)
         return ready_trains
