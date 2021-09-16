@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from conductor.app.crud import trains
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 from conductor.app.models import Train, TrainState, TrainConfig, AdvertiseKeysMessage
-from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysMessage
+from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysMessage, SharedKeysMessage
 
 
 class Aggregator:
@@ -121,9 +121,52 @@ class Aggregator:
 
         return broadcast_message
 
-    def process_shared_keys(self):
+    def process_share_keys_message(self, db: Session, train_id: Any,
+                                   share_keys_message: SharedKeysMessage) -> TrainState:
 
-        pass
+        db_train = trains.get(db, train_id)
+        state: TrainState = db_train.state
+        if state.round != 1:
+            raise HTTPException(status_code=403, detail=f"Round mismatch train {train_id} is in round {state.round}")
+
+        if state.round_k >= len(db_train.participants):
+            raise HTTPException(status_code=403, detail="Maximum number of key shares received.")
+
+        if state.iteration != share_keys_message.iteration:
+            raise HTTPException(status_code=403,
+                                detail=f"Train iteration do not match: \n "
+                                       f"message iteration = {share_keys_message.iteration} - "
+                                       f"train iteration = {state.iteration}")
+
+        self._add_cyphers_to_db(db, train_id, state, share_keys_message)
+        state = self._update_state_on_shared_keys_message(db, db_train, state)
+        return state
+
+    @staticmethod
+    def _update_state_on_shared_keys_message(db: Session, train: Train, state: TrainState):
+        state.round_k += 1
+
+        config: TrainConfig = train.config
+        if state.round_k >= ceil(config.dropout_allowance * len(train.participants)):
+            state.round_ready = True
+
+        db.commit()
+        db.refresh(state)
+        return state
+
+    @staticmethod
+    def _add_cyphers_to_db(db: Session, train_id: Any, state: TrainState, msg: SharedKeysMessage):
+        for cypher in msg.cyphers:
+            db_msg = SharedKeysMessage(
+                sender=msg.station_id,
+                recipient=cypher.station_id,
+                cypher=cypher.cypher,
+                iteration=state.iteration,
+                train_id=train_id
+            )
+            db.add(db_msg)
+
+        db.commit()
 
     @staticmethod
     def _update_train_state_with_key_advertisement(db: Session,
