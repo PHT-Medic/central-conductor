@@ -33,7 +33,8 @@ def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
     """
     When the advertisement round of an iteration is finished receive a list of user associated key pairs
     """
-    broadcast = update_round_0_on_broadcast(db, train_id=train_id)
+    aggregator = Aggregator()
+    broadcast = aggregator.broadcast_keys(db, train_id)
     return broadcast
 
 

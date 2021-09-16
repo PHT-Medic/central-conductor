@@ -1,5 +1,5 @@
 from datetime import datetime
-from math import floor
+from math import floor, ceil
 from typing import Any, Tuple, List
 
 from fastapi import HTTPException
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from conductor.app.crud import trains
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 from conductor.app.models import Train, TrainState, TrainConfig, AdvertiseKeysMessage
-from conductor.app.schemas.protocol import AdvertiseKeysSchema
+from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysSchema
 
 
 class Aggregator:
@@ -54,7 +54,6 @@ class Aggregator:
 
         """
 
-        print(message)
         train, state, config = self.get_train_info(db, train_id)
 
         # Check that the train is in the correct round and state to receive key advertisements
@@ -72,6 +71,44 @@ class Aggregator:
         state = self._update_train_state_with_key_advertisement(db, train, state, config)
 
         return state
+
+    def broadcast_keys(self, db: Session, train_id: Any):
+        train, state, config = self.get_train_info(db, train_id)
+
+        n_participants = len(train.participants)
+
+        messages = db.query(AdvertiseKeysMessage).filter(
+            AdvertiseKeysMessage.train_id == train.id,
+            AdvertiseKeysMessage.iteration == state.iteration
+        ).all()
+
+        if not state.round_ready:
+            raise HTTPException(status_code=403,
+                                detail=f"Train {train_id} is not ready."
+                                       f" Collected {state.round_k}/{n_participants} messages")
+
+        if state.round_messages_sent >= n_participants:
+            raise HTTPException(status_code=403, detail=f"Maximum number of key broadcasts performed for "
+                                                        f"train {train_id}")
+
+        broadcast_message = BroadCastKeysSchema(train_id=train_id,
+                                                iteration=state.iteration,
+                                                keys=messages)
+
+        state.round_messages_sent += 1
+
+
+
+        if state.round_messages_sent >= ceil(n_participants * config.dropout_allowance):
+            print(f"Moving train {train_id} to round 1")
+            state.round = 1
+            state.round_k = 0
+            state.round_messages_sent = 0
+
+        db.commit()
+        db.refresh(state)
+
+        return broadcast_message
 
     @staticmethod
     def _update_train_state_with_key_advertisement(db: Session,
