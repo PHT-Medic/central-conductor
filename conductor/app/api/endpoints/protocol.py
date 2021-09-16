@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from conductor.app.schemas.train import TrainState, Train, TrainCreate, TrainConfig
-from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysSchema, PostSharedKeys, GetCyphersRequest, \
+from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysMessage, SharedKeysMessage, GetCyphersRequest, \
     DistributeCypher
 from conductor.app.crud.train import read_train_state, create_train, get_trains, get_train, read_train_config, \
     update_config
@@ -28,7 +28,7 @@ def collect_key_advertisements(train_id: int, message: AdvertiseKeysSchema, db: 
     return state
 
 
-@router.get("/trains/{train_id}/broadcastKeys", response_model=BroadCastKeysSchema)
+@router.get("/trains/{train_id}/broadcastKeys", response_model=BroadCastKeysMessage)
 def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
     """
     When the advertisement round of an iteration is finished receive a list of user associated key pairs
@@ -39,7 +39,7 @@ def distribute_collected_keys(train_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/trains/{train_id}/shareKeys", response_model=TrainState)
-def collect_key_shares(train_id: int, msg: PostSharedKeys, db: Session = Depends(get_db)):
+def collect_key_shares(train_id: int, msg: SharedKeysMessage, db: Session = Depends(get_db)):
     state = process_share_keys_message(db, msg, train_id)
     return state
 

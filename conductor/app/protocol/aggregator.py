@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from conductor.app.crud import trains
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 from conductor.app.models import Train, TrainState, TrainConfig, AdvertiseKeysMessage
-from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysSchema
+from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysMessage
 
 
 class Aggregator:
@@ -37,7 +37,7 @@ class Aggregator:
         Returns:
             sql alchemy database objects for the train, it's state and config
         """
-        db_train = get_train(db, train_id)
+        db_train = trains.get(db, train_id)
 
         return db_train, db_train.state, db_train.config
 
@@ -72,16 +72,22 @@ class Aggregator:
 
         return state
 
-    def broadcast_keys(self, db: Session, train_id: Any):
-        train, state, config = self.get_train_info(db, train_id)
+    def broadcast_keys(self, db: Session, train_id: Any) -> BroadCastKeysMessage:
+        """
+        Collect all key advertisements in the for the given train in the current iteration and package them into
+        a message to send to participant
 
+        Args:
+            db: sqlalchemy database session
+            train_id: identifier of the train
+
+        Returns:
+            Message to be sent to a participant after a request
+        """
+        train, state, config = self.get_train_info(db, train_id)
         n_participants = len(train.participants)
 
-        messages = db.query(AdvertiseKeysMessage).filter(
-            AdvertiseKeysMessage.train_id == train.id,
-            AdvertiseKeysMessage.iteration == state.iteration
-        ).all()
-
+        # Check for states and that no additional messages will be sent
         if not state.round_ready:
             raise HTTPException(status_code=403,
                                 detail=f"Train {train_id} is not ready."
@@ -91,14 +97,19 @@ class Aggregator:
             raise HTTPException(status_code=403, detail=f"Maximum number of key broadcasts performed for "
                                                         f"train {train_id}")
 
-        broadcast_message = BroadCastKeysSchema(train_id=train_id,
-                                                iteration=state.iteration,
-                                                keys=messages)
+        # Get all key advertisements for the selected train in the current iteration
+        messages = db.query(AdvertiseKeysMessage).filter(
+            AdvertiseKeysMessage.train_id == train.id,
+            AdvertiseKeysMessage.iteration == state.iteration
+        ).all()
 
+        # Create key broadcast message based on the key advertisements in the db
+        broadcast_message = BroadCastKeysMessage(train_id=train_id,
+                                                 iteration=state.iteration,
+                                                 keys=messages)
+
+        # Update the state based on the new message
         state.round_messages_sent += 1
-
-
-
         if state.round_messages_sent >= ceil(n_participants * config.dropout_allowance):
             print(f"Moving train {train_id} to round 1")
             state.round = 1
@@ -110,11 +121,28 @@ class Aggregator:
 
         return broadcast_message
 
+    def process_shared_keys(self):
+
+        pass
+
     @staticmethod
     def _update_train_state_with_key_advertisement(db: Session,
                                                    train: Train,
                                                    train_state: TrainState,
-                                                   train_config: TrainConfig):
+                                                   train_config: TrainConfig) -> TrainState:
+
+        """
+        Update the train state after receiving a key advertisement from a participant
+
+        Args:
+            db: database session
+            train: db train object
+            train_state: db train state
+            train_config: db train config
+
+        Returns:
+            the updated state of the train
+        """
 
         # Get all messages for the train and it's current iteration
         total_key_adv = db.query(AdvertiseKeysMessage).filter(
@@ -128,8 +156,7 @@ class Aggregator:
 
         # Mark the round as ready when the threshold has been met
         train_state.round_k = n_messages
-        train_state.round_ready = (
-                floor(n_messages + train_config.dropout_allowance * n_participants) >= n_participants)
+        train_state.round_ready = (n_messages >= ceil(train_config.dropout_allowance * n_participants))
 
         train_state.updated_at = datetime.now()
         db.commit()

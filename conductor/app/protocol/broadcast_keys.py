@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from conductor.app.models.train import Train, TrainState, TrainConfig
 from conductor.app.models.protocol import AdvertiseKeysMessage
-from conductor.app.schemas.protocol import BroadCastKeysSchema, AdvertiseKeysSchema
+from conductor.app.schemas.protocol import BroadCastKeysMessage, AdvertiseKeysSchema
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 
 
@@ -48,7 +48,7 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
     return db_train_state
 
 
-def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCastKeysSchema:
+def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCastKeysMessage:
     db_train = db.query(Train).get(train_id)
     assert db_train
     db_train_state = db.query(TrainState).filter(TrainState.train_id == train_id).first()
@@ -79,9 +79,9 @@ def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCas
 
     db.commit()
 
-    broad_cast_message = BroadCastKeysSchema(train_id=train_id,
-                                             iteration=db_train_state.iteration,
-                                             keys=messages)
+    broad_cast_message = BroadCastKeysMessage(train_id=train_id,
+                                              iteration=db_train_state.iteration,
+                                              keys=messages)
     return broad_cast_message
 
 

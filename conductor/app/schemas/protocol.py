@@ -25,7 +25,7 @@ class StationKeys(BaseModel):
         orm_mode = True
 
 
-class BroadCastKeysSchema(BaseModel):
+class BroadCastKeysMessage(BaseModel):
     train_id: int
     iteration: int
     keys: List[StationKeys]
@@ -36,7 +36,7 @@ class KeyCypher(BaseModel):
     cypher: str
 
 
-class PostSharedKeys(BaseModel):
+class SharedKeysMessage(BaseModel):
     station_id: int
     created_at: datetime
     iteration: int
