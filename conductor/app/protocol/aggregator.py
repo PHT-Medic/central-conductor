@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from conductor.app.crud import trains
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 from conductor.app.models import Train, TrainState, TrainConfig, AdvertiseKeysMessage
+from conductor.app.models import ShareKeysMessage as DBShareKeys
 from conductor.app.schemas.protocol import AdvertiseKeysSchema, BroadCastKeysMessage, SharedKeysMessage
 
 
@@ -110,11 +111,14 @@ class Aggregator:
 
         # Update the state based on the new message
         state.round_messages_sent += 1
+
+        print(f"Train {train_id}:  {state.round_messages_sent}/{n_participants} keys broadcasted")
         if state.round_messages_sent >= ceil(n_participants * config.dropout_allowance):
             print(f"Moving train {train_id} to round 1")
             state.round = 1
             state.round_k = 0
             state.round_messages_sent = 0
+            state.round_ready = False
 
         db.commit()
         db.refresh(state)
@@ -139,13 +143,17 @@ class Aggregator:
                                        f"train iteration = {state.iteration}")
 
         self._add_cyphers_to_db(db, train_id, state, share_keys_message)
-        state = self._update_state_on_shared_keys_message(db, db_train, state)
+        state = self._update_state_on_shared_keys_message(db, db_train.id)
+        db.refresh(state)
         return state
 
-    @staticmethod
-    def _update_state_on_shared_keys_message(db: Session, train: Train, state: TrainState):
-        state.round_k += 1
+    def _update_state_on_shared_keys_message(self, db: Session, train_id: int):
 
+        train = trains.get(db, train_id)
+        state = train.state
+
+        state.round_k = self._get_num_cyphers_sent(db, train_id)
+        print(f"Train {train.id}:  Received {state.round_k}/{len(train.participants)} shared keys.")
         config: TrainConfig = train.config
         if state.round_k >= ceil(config.dropout_allowance * len(train.participants)):
             state.round_ready = True
@@ -154,10 +162,25 @@ class Aggregator:
         db.refresh(state)
         return state
 
+    # todo improve this
+    @staticmethod
+    def _get_num_cyphers_sent(db: Session, train_id: int) -> int:
+        db_train = trains.get(db, train_id)
+
+        # get the cyphers
+        advertise_messages = db.query(DBShareKeys).filter(
+            DBShareKeys.train_id == train_id,
+            DBShareKeys.iteration == db_train.state.iteration
+        ).all()
+
+        num_cyphers = int(len(advertise_messages) / len(db_train.participants))
+
+        return num_cyphers
+
     @staticmethod
     def _add_cyphers_to_db(db: Session, train_id: Any, state: TrainState, msg: SharedKeysMessage):
         for cypher in msg.cyphers:
-            db_msg = SharedKeysMessage(
+            db_msg = DBShareKeys(
                 sender=msg.station_id,
                 recipient=cypher.station_id,
                 cypher=cypher.cypher,
