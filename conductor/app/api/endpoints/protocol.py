@@ -45,5 +45,6 @@ def collect_key_shares(train_id: int, msg: SharedKeysMessage, db: Session = Depe
 
 @router.post("/trains/{train_id}/cyphers", response_model=List[DistributeCypher])
 def distribute_collected_cyphers(train_id: int, cypher_msg: GetCyphersRequest, db: Session = Depends(get_db)):
-    cyphers = distribute_cyphers(db, train_id, cypher_msg)
+    aggregator = Aggregator()
+    cyphers = aggregator.distribute_cyphers(db, train_id, cypher_msg.station_id)
     return cyphers

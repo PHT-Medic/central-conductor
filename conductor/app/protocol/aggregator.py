@@ -147,6 +147,27 @@ class Aggregator:
         db.refresh(state)
         return state
 
+    def distribute_cyphers(self, db: Session, train_id: Any, station_id: Any) -> List[DBShareKeys]:
+        cyphers = self._get_cyphers_for_station(db, train_id, station_id)
+        self._update_state_after_cypher_distribution(db, train_id)
+        return cyphers
+
+    def _update_state_after_cypher_distribution(self, db: Session, train_id: Any):
+        pass
+
+    @staticmethod
+    def _get_cyphers_for_station(db: Session, train_id: Any, station_id: Any) -> List[DBShareKeys]:
+
+        db_train = trains.get(db, train_id)
+        cyphers = db.query(DBShareKeys).filter(
+            DBShareKeys.train_id == train_id,
+            DBShareKeys.iteration == db_train.state.iteration,
+            DBShareKeys.sender != station_id,
+            DBShareKeys.recipient == station_id
+        ).all()
+
+        return cyphers
+
     def _update_state_on_shared_keys_message(self, db: Session, train_id: int):
 
         train = trains.get(db, train_id)
