@@ -48,3 +48,7 @@ def distribute_collected_cyphers(train_id: int, cypher_msg: GetCyphersRequest, d
     aggregator = Aggregator()
     cyphers = aggregator.distribute_cyphers(db, train_id, cypher_msg.station_id)
     return cyphers
+
+@router.post("/trains/{train_id}/submitInput")
+def submit_masked_input_vector(train_id: int, db: Session = Depends(get_db)):
+    pass
