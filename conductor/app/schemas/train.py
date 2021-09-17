@@ -6,6 +6,7 @@ from .station import StationBase
 
 
 class TrainBase(BaseModel):
+    name: str
     description: str
     proposal_id: Optional[int] = 0
 
@@ -31,6 +32,7 @@ class TrainState(BaseModel):
     round_ready: bool
     updated_at: Optional[datetime] = None
     discovery_finished: bool
+    round_messages_sent: int
 
     class Config:
         orm_mode = True

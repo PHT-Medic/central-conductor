@@ -10,7 +10,7 @@ from conductor.app.crud.train import read_train_state, get_train, read_train_con
 from conductor.app.models.train import TrainState, TrainConfig
 
 
-def process_share_keys_message(db: Session, msg: protocol.PostSharedKeys, train_id: int) -> TrainState:
+def process_share_keys_message(db: Session, msg: protocol.SharedKeysMessage, train_id: int) -> TrainState:
     """
     Process a a message containing key cyphers coming from a station, stores the cyphers which are created for each
     station at each station with the correct association and updates the train state

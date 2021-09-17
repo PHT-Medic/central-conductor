@@ -8,16 +8,18 @@ from fastapi.logger import logger
 
 
 
-
-def setup_db():
+def setup_db(dev=False):
     Base.metadata.create_all(bind=engine)
-    seed_db_for_testing()
+    if dev:
+        seed_db_for_testing()
 
 
-def reset_db():
+def reset_db(dev=False):
+    print("Resetting the database...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    seed_db_for_testing()
+    if dev:
+        seed_db_for_testing()
 
 
 def seed_db_for_testing():
@@ -48,11 +50,11 @@ def seed_db_for_testing():
     db_trains = trains.get_multi(session)
     if not db_trains:
         print("Creating test trains")
-        test_train_create = TrainCreate(description="test train 1")
+        test_train_create = TrainCreate(description="test train 1", name="1")
         db_train_1 = trains.create_train_for_user(db=session, train_in=test_train_create, creator_id=1)
-        test_train_2_create = TrainCreate(description="test train 2")
+        test_train_2_create = TrainCreate(description="test train 2", name="2")
         db_train_2 = trains.create_train_for_user(db=session, train_in=test_train_2_create, creator_id=1)
-        test_train_3_create = TrainCreate(description="test train 3")
+        test_train_3_create = TrainCreate(description="test train 3", name="3")
         db_train_3 = trains.create_train_for_user(db=session, train_in=test_train_3_create, creator_id=1)
 
     session.commit()

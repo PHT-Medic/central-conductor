@@ -1,17 +1,16 @@
-from typing import List, Any
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from typing import List, Any
 
+from conductor.app.crud.station import register_train_for_station
+from conductor.app.protocol.token import create_train_token
+from conductor.app.schemas.train import TrainState, Train, TrainCreate, TrainConfig
+from conductor.app.schemas.discovery import DiscoveryResultCreate, DiscoveryResults
+
+from conductor.app.crud.train import read_train_state, create_train, get_trains, get_train, read_train_config, update_config
 from conductor.app.api.dependencies import get_db
 from conductor.app.crud import trains, dl_models, discover
-from conductor.app.crud.station import register_train_for_station
-from conductor.app.crud.train import read_train_state, read_train_config, \
-    update_config
-from conductor.app.protocol.token import create_train_token
-from conductor.app.schemas.discovery import DiscoveryResultCreate, DiscoveryResults
 from conductor.app.schemas.dl_models import DLModelCreate, DLModel, DLModelUpdate
-from conductor.app.schemas.train import TrainState, Train, TrainCreate, TrainConfig
 
 router = APIRouter()
 
@@ -19,7 +18,7 @@ router = APIRouter()
 # TODO authentication user based or with train token
 
 
-@router.post("/trains/", response_model=Train, tags=["Trains"])
+@router.post("/trains", response_model=Train, tags=["Trains"])
 def create_train_for_user(
         creator_id: int, train_in: TrainCreate, db: Session = Depends(get_db)
 ):
@@ -27,7 +26,7 @@ def create_train_for_user(
     return db_train
 
 
-@router.get("/trains/", response_model=List[Train], tags=["Trains"])
+@router.get("/trains", response_model=List[Train], tags=["Trains"])
 def read_trains(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     db_trains = trains.get_multi(db, skip=skip, limit=limit)
     return db_trains
@@ -36,13 +35,8 @@ def read_trains(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 @router.get("/trains/{train_id}", response_model=Train, tags=["Trains"])
 def read_train(train_id: int, db: Session = Depends(get_db)):
     db_train = trains.get(db, train_id)
+
     return db_train
-
-
-@router.delete("/trains/{train_id}", response_model=Train, tags=["Trains"])
-def delete_train_with_id(train_id: int, db: Session = Depends(get_db)):
-    removed_train = trains.remove(db, id=train_id)
-    return removed_train
 
 
 @router.get("/trains/{train_id}/state", tags=["Trains"], response_model=TrainState)
@@ -51,7 +45,7 @@ def get_train_state(train_id: int, db: Session = Depends(get_db)):
     Read the current state of the train, specified by **{train_id}** from the database and return it as json
 
     """
-    state = read_train_state(db, train_id)
+    state = trains.read_train_state(db, train_id)
     return state
 
 

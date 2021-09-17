@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 from conductor.app.schemas import protocol
 from math import floor
@@ -6,12 +8,11 @@ from fastapi import HTTPException
 
 from conductor.app.models.train import Train, TrainState, TrainConfig
 from conductor.app.models.protocol import AdvertiseKeysMessage
-from conductor.app.schemas.protocol import BroadCastKeysSchema, AdvertiseKeysSchema
+from conductor.app.schemas.protocol import BroadCastKeysMessage, AdvertiseKeysSchema
 from conductor.app.crud.train import get_train, read_train_config, read_train_state
 
 
 def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeysSchema):
-
     # TODO check that the message is valid - no duplicates etc
     # store the message in db
     msg = create_advertise_keys_message(db, message)
@@ -24,14 +25,19 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
         raise HTTPException(status_code=400,
                             detail=f"Round mismatch - train is currently in round {db_train_state.round}")
 
-    key_advertise_messages = db.query(AdvertiseKeysMessage). \
-        filter(AdvertiseKeysMessage.train_id == train_id,
-               AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
+    if db_train_state.round_k >= len(db_train.participants):
+        raise HTTPException(status_code=400,
+                            detail="Max number of key broadcast received. Check if your train is in the correct round "
+                                   "or iteration.")
+
+    key_advertise_messages = db.query(AdvertiseKeysMessage) \
+        .filter(AdvertiseKeysMessage.train_id == train_id,
+                AdvertiseKeysMessage.iteration == db_train_state.iteration).all()
 
     n_participants = len(db_train.participants)
     n_messages = len(key_advertise_messages)
-    db_train_state.round_k = n_messages
 
+    db_train_state.round_k = n_messages
     db_train_state.round_ready = (
             floor(n_messages + db_train_config.dropout_allowance * n_participants) >= n_participants)
 
@@ -42,7 +48,7 @@ def update_round_0_on_message(db: Session, train_id: int, message: AdvertiseKeys
     return db_train_state
 
 
-def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCastKeysSchema:
+def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCastKeysMessage:
     db_train = db.query(Train).get(train_id)
     assert db_train
     db_train_state = db.query(TrainState).filter(TrainState.train_id == train_id).first()
@@ -65,18 +71,17 @@ def update_round_0_on_broadcast(db: Session, train_id: int) -> protocol.BroadCas
 
     config = read_train_config(db, train_id)
 
-
     if db_train_state.round_messages_sent > floor(
             len(db_train.participants) - (len(db_train.participants) * config.dropout_allowance)):
         # db_train_state.round_finished = True
-        print(f"Moving to next round: {db_train_state.round} -> {db_train_state.round + 1}")
+        logging.info(f"Moving to next round: {db_train_state.round} -> {db_train_state.round + 1}")
         db_train_state.round += 1
 
     db.commit()
 
-    broad_cast_message = BroadCastKeysSchema(train_id=train_id,
-                                             iteration=db_train_state.iteration,
-                                             keys=messages)
+    broad_cast_message = BroadCastKeysMessage(train_id=train_id,
+                                              iteration=db_train_state.iteration,
+                                              keys=messages)
     return broad_cast_message
 
 

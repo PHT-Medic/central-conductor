@@ -11,7 +11,7 @@ from conductor.app.db.base_class import Base
 class Train(Base):
     __tablename__ = "trains"
     id = Column(Integer, primary_key=True, index=True)
-    train_id = Column(String, default=str(uuid4()))
+    name = Column(String, default=str(uuid4()))
     description = Column(String)
     created_at = Column(DateTime, default=datetime.now())
     updated_at = Column(DateTime, nullable=True)
